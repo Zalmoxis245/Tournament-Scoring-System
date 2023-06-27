@@ -354,8 +354,7 @@ class EntryWMK():
             self.fields[field].put_placeholder(newPlaceholder)
 
     def defaultSubmit(self, WMKnr):
-        func(WMKnr)
-        self.root.destroy()
+        func(WMKnr, self)
         
     
             
@@ -388,6 +387,8 @@ def EditWindowWrapper(self):
             relx = .5,
             anchor = "center"
         )
+        if int(args) == 1:
+            self.teamName.config(state="disabled")
         for i in range(int(args)):
             participant = []
             for j in range(2):
@@ -441,7 +442,7 @@ def submitTeam(self, WMKnr):
     if (len(self.fields) == 1):
         showError(self, 1000)
     else:
-        if(self.teamName.get() == "Team Name" or self.teamName.get() == ""):
+        if((self.teamName.get() == "Team Name" or self.teamName.get() == "") and int(self.args) != 1):
             showError(self, 1001)
         else:
             if foundWarningLabel(self.warningLabels, "Invalid team name"):
@@ -559,7 +560,12 @@ def submitTeam(self, WMKnr):
             if bol1 == False:
                 showError(self, 1006)
             else:
-                teamName = '"'+self.teamName.get()+'"'
+                if int(self.args) == 1:
+                    teamName = '"'+users[0][0].replace('"', '')+" "+users[0][1].replace('"', '')+'"'
+                    tOrI = "Individual Participant"
+                else:
+                    teamName = '"'+self.teamName.get()+'"'
+                    tOrI = "Team"
                 bol = True
                 if os.path.exists(databasePath):
                     with open(databasePath, "r") as file:
@@ -575,14 +581,14 @@ def submitTeam(self, WMKnr):
                                 break
                     
                 if bol:
-                    messagebox.showinfo("Saved", "Team Record Saved Succesfully!")
+                    messagebox.showinfo("Saved", f"{tOrI} Record Saved Succesfully!")
                     f = open(databasePath, "a")
                     f.write(F'TEAM NAME: {teamName}\n\tSCORE: "NO DATA"\n')
                     for jml in range(len(users)):
                         f.write(F'\tUSER{jml}:\n\t\tFIRSTNAME: {users[jml][0]}\n\t\tSURNAME: {users[jml][1]}\n\t\tFOOTBALL: "0"\n\t\tBASKETBALL: "0"\n\t\tCRICKET: "0"\n\t\tMATHS: "0"\n\t\tCHESS: "0"\n')
                     f.write('\n')
                     f.close()
-                    func(self.WMKnr)
+                    func(self.WMKnr, self)
                     self.root.destroy()
 def submitResults(self, WMKnr):
     if len(self.fields) == 1:
@@ -676,7 +682,7 @@ def EditERWindowWrapper(self):
             
             self.field = Label(self.root, text = users[i], font=("Times New Roman", 14))
             self.field.place(
-                y = self.posDFN + int(self.incrementalFH*1.5),
+                y = self.posDFN + int(self.incrementalFH*2.5),
                 relx = getX(len(users))[i],
                 anchor = "center"
             )
@@ -687,7 +693,7 @@ def EditERWindowWrapper(self):
             clicked.set("Score")
             self.field = OptionMenu(self.root, clicked, *["1","2","3","4","5","6","7","8","9","10"])
             self.field.place(
-                y = self.posDFN + int(self.incrementalFH*2.8),
+                y = self.posDFN + int(self.incrementalFH*3.8),
                 relx = getX(len(users))[i],
                 anchor = "center"
             )
@@ -739,7 +745,7 @@ def AddERDropdownWrapper(self):
             teamName = []
             self.field = OptionMenu(self.root, clicked, *teams, command = EditERWindowWrapper(self))
             self.field.place(
-                y = self.posDFN,
+                y = self.posDFN + self.incrementalFH,
                 relx = .5,
                 anchor = "center",
                 height = 25
@@ -747,9 +753,6 @@ def AddERDropdownWrapper(self):
             teamName.append(self.field)
             teamName.append(clicked)
             self.fields.append(teamName)
-            self.fields[0].place(
-                y = self.posDFN - self.incrementalFH
-            )
 
 
         
@@ -863,8 +866,9 @@ def EditResultsWindowWrapper(self):
     return EditResultsWindow
                     
 
-def func(var):
+def func(var, self):
     if (var==0):
+        self.root.destroy()
         home = EntryWMK(350, 240, "Tournament Scoring System", 0,0,0,
                     
                     buttons = [
@@ -879,6 +883,7 @@ def func(var):
                     GapBetweenButtons = 1.25
                     );
     elif var == 1:
+        self.root.destroy()
         AP = EntryWMK(350, 250, "Add Participant/s", 0, 2, 0, options = [[["1","2","3","4","5"],"Please Select"]],
                     buttons = [
                         ["Submit", submitTeam, 0, [1, 10]],
@@ -905,6 +910,7 @@ def func(var):
             with open(databasePath, 'r') as abc:
                 lines = [i for i in abc.readlines() if len(i)>1]
                 if len(lines) >2:
+                    self.root.destroy()
                     ER = EntryWMK(350, 250, "Enter Event Results", 0, 2, 0, options = [[["Football","Basketball","Cricket","Maths","Chess"],"Select Event"]],
                                 buttons = [
                                     ["Submit", submitResults, 0, [1, 10]],
@@ -913,12 +919,14 @@ def func(var):
                                 GapBetweenButtons = 1.3,
                                 dropdownCommands = [AddERDropdownWrapper]
                                 )
+                    ER.posDFN = ER.posDFN - ER.incrementalFH
+                    ER.fields[0].place(
+                        y = ER.posDFN
+                    )
                 else:
                     showError(None, 1008)
-                    func(0)
         else:
             showError(None, 1007)
-            func(0)
     elif var == 3:
         if os.path.exists(databasePath):
             with open(databasePath, 'r') as abc:
@@ -930,6 +938,7 @@ def func(var):
                         ms = line[12:]
                         teams.append(ms[:-2])
             if len(lines) >2:
+                self.root.destroy()
                 R = EntryWMK(350, 250, "Results", 0, 2, 0, options = [[teams,"Select Team"]],
                             buttons = [
                                 ["Back", EntryWMK.defaultSubmit, 0, [1, 6]]
@@ -942,10 +951,15 @@ def func(var):
                 )
             else:
                 showError(None, 1008)
-                func(0)
         else:
             showError(None, 1007)
-            func(0)
+    elif var == 4:
+        result = messagebox.askquestion("Quiting", "Are you sure you want to QUIT?")
+        if result  == "yes":
+            self.root.destroy()
+        else:
+            pass
+            
 
 if __name__ == "__main__":
 
@@ -975,34 +989,3 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
